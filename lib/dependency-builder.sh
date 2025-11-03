@@ -9,16 +9,20 @@ INSTALL_PREFIX="$(pwd)"
 [ ! -e include/ ] || rm -rf include/
 [ ! -e libtkrzw.a ] || rm -f libtkrzw.a
 
+
 mkdir sources
 cd sources
-wget https://dbmx.net/tkrzw/pkg/tkrzw-1.0.32.tar.gz
+cp $INSTALL_PREFIX/tkrzw-1.0.32.tar.gz ./
 tar xvf tkrzw-1.0.32.tar.gz
 rm -f tkrzw-1.0.32.tar.gz
 
 #clear									#this is bad
 
-#printf "We need sudo rights to install liblz4-dev and cmake, please provide password if prompted:\n"
-#sudo apt install liblz4-dev cmake					#npm hangs on this forever
+if [[ "$EUID" -ne 0 ]]; then
+    printf "\033[0;31mYou are not root user. We need to install dependencies. Please run this with root user or install them manually.\nDependencies:\n\t- cmake\n\t- ninja-build\n\t- build-essential\n\t- liblz4-dev\n\033[0m" >&2
+else
+    apt install -y cmake ninja-build build-essential liblz4-dev
+fi
 
 printf "\033[0;31mWe are going to build Tkrzw library, it can take several minutes...\033[0m\n"
 #read -p "Enter to start building or ctrl+c to stop:    "		#npm ignores this

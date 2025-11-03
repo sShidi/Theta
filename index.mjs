@@ -1,10 +1,7 @@
 'use strict'
 
 import { createRequire } from "module"
-const tkrzw =  createRequire(import.meta.url)('bindings')('tkrzw-node');
-
-export const polyDBM = tkrzw.polyDBM;
-export const polyIndex = tkrzw.polyIndex;
+const tkrzw =  createRequire(import.meta.url)('bindings')('tkrzw-node')
 
 export default { polyDBM: tkrzw.polyDBM, polyIndex: tkrzw.polyIndex };
 

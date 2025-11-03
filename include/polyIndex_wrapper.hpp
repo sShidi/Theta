@@ -29,7 +29,7 @@ class polyIndex_wrapper : public Napi::ObjectWrap<polyIndex_wrapper>
         Napi::Value continueIteration(const Napi::CallbackInfo& info);          //async
         Napi::Value freeIterator(const Napi::CallbackInfo& info);
         Napi::Value close(const Napi::CallbackInfo& info);
-        void Finalize(Napi::Env env);                                           //See method definition for details
+        void Finalize(Napi::Env env);
 };
 
 

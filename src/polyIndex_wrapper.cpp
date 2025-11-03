@@ -189,7 +189,6 @@ Napi::Object polyIndex_wrapper::Init(Napi::Env env, Napi::Object exports)
     return exports;
 }
 
-// As DBM objects are not expected to go outta scope rapidly, It doesn't really much of a gain to use `Napi::BasicEnv`, however it adds dependency on Node-addon-api ^8.2.0 so we're better off not using it
 void polyIndex_wrapper::Finalize(Napi::Env env)
 {
     jump_iter.reset(nullptr);       //Same as `reset()` with no argument. Calls deleter of the current internal pointer if not `nullptr` already.

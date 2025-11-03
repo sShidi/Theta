@@ -3,9 +3,6 @@
 const tkrzw = require('bindings')('tkrzw-node')
 module.exports = { polyDBM: tkrzw.polyDBM, polyIndex: tkrzw.polyIndex } ;
 
-module.exports.polyDBM = tkrzw.polyDBM;
-module.exports.polyIndex = tkrzw.polyIndex;
-
 /*var fs = require('fs');
 let tkrzw_config = fs.readFileSync('./tkrzw_config.json', 'utf8');
 const db1 = new tkrzw.polyDBM(JSON.parse(tkrzw_config), "YaHeidar.tkh");*/
