@@ -206,6 +206,7 @@ void dbmAsyncWorker::OnOK()
     }
 }
 
+
 void dbmAsyncWorker::OnError(const Napi::Error& err)
 {
     deferred_promise.Reject(err.Value());
