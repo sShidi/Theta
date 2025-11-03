@@ -50,25 +50,14 @@ void dbmAsyncWorker::Execute()
         }
     }
     else if (operation == DBM_PROCESS) {
-    std::string key = std::any_cast<std::string>(params[0]);
-    bool writable = std::any_cast<bool>(params[1]);
-    Napi::ThreadSafeFunction tsfn = std::any_cast<Napi::ThreadSafeFunction>(params[2]);
-
-    auto processor = [&](std::string_view existing) -> std::string {
-        std::string result;
-        tsfn.BlockingCall([&](Napi::Env env, Napi::Function jsCallback) {
-            Napi::Value ret = jsCallback.Call({ Napi::String::New(env, std::string(existing)) });
-            if (ret.IsString()) {
-                result = ret.As<Napi::String>().Utf8Value();
-            }
-        });
-        return result;
-    };
-
-    tkrzw::Status s = dbmReference->Process(key, processor, writable);
-    tsfn.Release();
-    if (s != tkrzw::Status::SUCCESS) SetError("DBM Process failed");
-}
+        std::string key = std::any_cast<std::string>(params[0]);
+        bool writable = std::any_cast<bool>(params[1]);
+        Napi::ThreadSafeFunction tsfn = std::any_cast<Napi::ThreadSafeFunction>(params[2]);
+        processor_jsfunc_wrapper processor(tsfn);
+        tkrzw::Status s = dbmReference->Process(key, &processor, writable);
+        tsfn.Release();
+        if (s != tkrzw::Status::SUCCESS) SetError("DBM Process failed");
+    }
 
     // ---------------- Iterator operations ----------------
     else if (operation == ITERATOR_FIRST) {
@@ -191,3 +180,33 @@ void dbmAsyncWorker::OnOK()
     }
     else if (operation == INDEX_GET_VALUES) {
         std::vector<std::string>& vec =
+            std::any_cast<std::vector<std::string>&>(any_result);
+        Napi::Array arr = Napi::Array::New(Env(), vec.size());
+        for (size_t i = 0; i < vec.size(); ++i) {
+            arr.Set(i, Napi::String::New(Env(), vec[i]));
+        }
+        deferred_promise.Resolve(arr);
+    }
+    else if (operation == ITERATOR_GET) {
+        auto& pair = std::any_cast<std::pair<std::string, std::string>&>(any_result);
+        Napi::Object obj = Napi::Object::New(Env());
+        obj.Set("key", Napi::String::New(Env(), pair.first));
+        obj.Set("value", Napi::String::New(Env(), pair.second));
+        deferred_promise.Resolve(obj);
+    }
+    else if (operation == INDEX_GET_ITERATOR_VALUE) {
+        auto& pair = std::any_cast<std::pair<std::string, std::string>&>(any_result);
+        Napi::Object obj = Napi::Object::New(Env());
+        obj.Set("key", Napi::String::New(Env(), pair.first));
+        obj.Set("value", Napi::String::New(Env(), pair.second));
+        deferred_promise.Resolve(obj);
+    }
+    else {
+        deferred_promise.Resolve(Napi::Boolean::New(Env(), true));
+    }
+}
+
+void dbmAsyncWorker::OnError(const Napi::Error& err)
+{
+    deferred_promise.Reject(err.Value());
+}
