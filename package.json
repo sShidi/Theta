@@ -2,7 +2,7 @@
   "name": "tkrzw-node",
   "type": "module",
   "packageType": "module",
-  "version": "1.2.1",
+  "version": "2.0.0",
   "description": "Tkrzw DBM and Index bindings for Node.js",
   "author": "Th3R0b0t",
   "keywords":

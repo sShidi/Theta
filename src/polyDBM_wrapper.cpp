@@ -136,15 +136,17 @@ Napi::Value polyDBM_wrapper::close(const Napi::CallbackInfo& info)
 //====================================================================================================================
 
 //-----------------JS-Requirements-----------------//
+
 Napi::Object polyDBM_wrapper::Init(Napi::Env env, Napi::Object exports)
 {
     // Initialization
     ::noopSym = Napi::String::New(env, "___TKRZW_NOOP___");
     ::removeSym = Napi::String::New(env, "___TKRZW_REMOVE___");
 
-    // This method is used to hook the accessor and method callbacks
+    // Define all instance methods and static values
     Napi::Function functionList = DefineClass(env, "polyDBM",
     {
+        // Existing methods
         InstanceMethod<&polyDBM_wrapper::set>("set", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
         InstanceMethod<&polyDBM_wrapper::append>("append", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
         InstanceMethod<&polyDBM_wrapper::getSimple>("getSimple", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
@@ -153,28 +155,57 @@ Napi::Object polyDBM_wrapper::Init(Napi::Env env, Napi::Object exports)
         InstanceMethod<&polyDBM_wrapper::sync>("sync", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
         InstanceMethod<&polyDBM_wrapper::process>("process", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
         InstanceMethod<&polyDBM_wrapper::close>("close", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        
+        // NEW: Additional DBM methods
+        InstanceMethod<&polyDBM_wrapper::get>("get", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::remove>("remove", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::compareExchange>("compareExchange", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::increment>("increment", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::compareExchangeMulti>("compareExchangeMulti", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::rekey>("rekey", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::processMulti>("processMulti", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::processFirst>("processFirst", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::processEach>("processEach", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::count>("count", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::getFileSize>("getFileSize", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::getFilePath>("getFilePath", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::getTimestamp>("getTimestamp", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::clear>("clear", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::inspect>("inspect", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::isOpen>("isOpen", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::isWritable>("isWritable", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::isHealthy>("isHealthy", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::isOrdered>("isOrdered", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::search>("search", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        
+        // NEW: Iterator methods
+        InstanceMethod<&polyDBM_wrapper::makeIterator>("makeIterator", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::iteratorFirst>("iteratorFirst", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::iteratorLast>("iteratorLast", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::iteratorJump>("iteratorJump", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::iteratorJumpLower>("iteratorJumpLower", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::iteratorJumpUpper>("iteratorJumpUpper", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::iteratorNext>("iteratorNext", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::iteratorPrevious>("iteratorPrevious", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::iteratorGet>("iteratorGet", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::iteratorSet>("iteratorSet", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::iteratorRemove>("iteratorRemove", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::freeIterator>("freeIterator", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        
+        // NEW: Export/Import methods
+        InstanceMethod<&polyDBM_wrapper::exportToFlatRecords>("exportToFlatRecords", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::importFromFlatRecords>("importFromFlatRecords", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        InstanceMethod<&polyDBM_wrapper::exportKeysAsLines>("exportKeysAsLines", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        
+        // NEW: Restoration methods
+        InstanceMethod<&polyDBM_wrapper::restoreDatabase>("restoreDatabase", static_cast<napi_property_attributes>(napi_writable | napi_configurable)),
+        
+        // Static symbols for processor return values
         StaticValue("NOOP", noopSym, static_cast<napi_property_attributes>(napi_enumerable)),
         StaticValue("REMOVE", removeSym, static_cast<napi_property_attributes>(napi_enumerable))
     });
 
-    /*Napi::Symbol noopSym = Napi::Symbol::New(env, "NOOP");
-    Napi::Symbol removeSym = Napi::Symbol::New(env, "REMOVE");
-
-    functionList.DefineProperties({
-        Napi::PropertyDescriptor::Value("NOOP", noopSym, napi_enumerable),
-        Napi::PropertyDescriptor::Value("REMOVE", removeSym, napi_enumerable)
-    });*/
-
-    // Create symbols and attach them as static properties of the class
-    // These symbols are to be returned to indicate tkrzw::RecordProcessor:NOOP/REMOVE
-    //functionList.Set("NOOP", Napi::Symbol::New(env, "NOOP"));
-    //functionList.Set("REMOVE", Napi::Symbol::New(env, "REMOVE"));
-
-    // Data set using `env.SetInstanceData` associated with the instance of the add-on for the duration of its lifecycle.
-    // We store ctor reference so we can get symbols back by `Napi::Function polyDBMConstructor = env.GetInstanceData<Napi::FunctionReference>()->Value()`.
-    // IMPORTANT: `env.SetInstanceData<T>(...)` and `env.GetInstanceData<T>()` are template-based and allow one instance per type T per environment.
-    // If you call `env.SetInstanceData<Napi::FunctionReference>(...)` twice, the second call overwrites the first.
-    Napi::FunctionReference* constructor = new Napi::FunctionReference();
+Napi::FunctionReference* constructor = new Napi::FunctionReference();
     *constructor = Napi::Persistent(functionList);
     env.SetInstanceData<Napi::FunctionReference>(constructor);
     
@@ -182,9 +213,9 @@ Napi::Object polyDBM_wrapper::Init(Napi::Env env, Napi::Object exports)
     return exports;
 }
 
-// As DBM objects are not expected to go outta scope rapidly, It doesn't really much of a gain to use `Napi::BasicEnv`, however it adds dependency on Node-addon-api ^8.2.0 so we're better off not using it
 void polyDBM_wrapper::Finalize(Napi::Env env)
 {
+    iterator.reset(nullptr);
     if( dbm.IsOpen() )
     {
         if( dbm.Close() != tkrzw::Status::SUCCESS)
@@ -193,4 +224,5 @@ void polyDBM_wrapper::Finalize(Napi::Env env)
         }
     }
 }
+
 //-----------------JS-Requirements-----------------//
