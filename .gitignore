@@ -1,6 +1,7 @@
 build
 node_modules
 .vscode
+.idea
 package-lock.json
 lib/*
 !lib/dependency-builder.sh

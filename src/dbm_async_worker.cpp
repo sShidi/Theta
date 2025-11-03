@@ -1,217 +1,193 @@
 #include "../include/dbm_async_worker.hpp"
-
-/*dbmAsyncWorker::dbmAsyncWorker(const Napi::Env& env, tkrzw::PolyDBM& dbmReference, OPERATION_TYPE operation, std::string param1, std::string param2):
-Napi::AsyncWorker(env),
-dbmReference(dbmReference),
-operation(operation),
-param1(param1),
-param2(param2),
-deferred_promise{Env()}
-{};
-
-dbmAsyncWorker::dbmAsyncWorker(const Napi::Env& env, tkrzw::PolyDBM& dbmReference, OPERATION_TYPE operation):
-Napi::AsyncWorker(env),
-dbmReference(dbmReference),
-operation(operation),
-deferred_promise{Env()}
-{};*/
-
-/*template <typename... argTypes>
-dbmAsyncWorker::dbmAsyncWorker(const Napi::Env& env, tkrzw::PolyDBM& dbmReference, OPERATION_TYPE operation, argTypes... paramPack):
-Napi::AsyncWorker(env),
-dbmReference(dbmReference),
-operation(operation),
-deferred_promise{Env()}
-{
-    (params.emplace_back(std::any(paramPack)),...);
-};*/
+#include "../include/utils/processor_jsfunc_wrapper.hpp"
+#include "../include/utils/tsfn_types.hpp"
 
 void dbmAsyncWorker::Execute()
 {
-    if(operation == DBM_SET)
-    {
-        //if(params.size() == 2)
-        //{
-            tkrzw::Status set_status = dbmReference->get().Set( std::any_cast<std::string>(params[0]), std::any_cast<std::string>(params[1]) );
-            
-            if( set_status != tkrzw::Status::SUCCESS)
-            {
-                //Napi::TypeError::New(env, set_status.GetMessage().c_str()).ThrowAsJavaScriptException();
-                SetError("Couldn't set!");
+    // ---------------- DBM operations ----------------
+    if (operation == DBM_SET) {
+        tkrzw::Status s = dbmReference->Set(
+            std::any_cast<std::string>(params[0]),
+            std::any_cast<std::string>(params[1]));
+        if (s != tkrzw::Status::SUCCESS) SetError("DBM Set failed");
+    }
+    else if (operation == DBM_APPEND) {
+        tkrzw::Status s = dbmReference->Append(
+            std::any_cast<std::string>(params[0]),
+            std::any_cast<std::string>(params[1]),
+            std::any_cast<std::string>(params[2]));
+        if (s != tkrzw::Status::SUCCESS) SetError("DBM Append failed");
+    }
+    else if (operation == DBM_GET_SIMPLE) {
+        any_result = dbmReference->GetSimple(
+            std::any_cast<std::string>(params[0]),
+            std::any_cast<std::string>(params[1]));
+        // If result equals default, treat as not found
+        if (std::any_cast<std::string>(any_result) ==
+            std::any_cast<std::string>(params[1])) {
+            SetError("Key not found");
+        }
+    }
+    else if (operation == DBM_SHOULD_BE_REBUILT) {
+        bool result = false;
+        tkrzw::Status s = dbmReference->ShouldBeRebuilt(&result);
+        if (s != tkrzw::Status::SUCCESS || !result) {
+            SetError("ShouldBeRebuilt check failed or not needed");
+        }
+    }
+    else if (operation == DBM_REBUILD) {
+        tkrzw::Status s = dbmReference->RebuildAdvanced(
+            std::any_cast<std::map<std::string,std::string>>(params[0]));
+        if (s != tkrzw::Status::SUCCESS) {
+            SetError("DBM Rebuild failed");
+        }
+    }
+    else if (operation == DBM_SYNC) {
+        tkrzw::Status s = dbmReference->Synchronize(
+            std::any_cast<bool>(params[0]));
+        if (s != tkrzw::Status::SUCCESS) {
+            SetError("DBM Sync failed");
+        }
+    }
+    else if (operation == DBM_PROCESS) {
+    std::string key = std::any_cast<std::string>(params[0]);
+    bool writable = std::any_cast<bool>(params[1]);
+    Napi::ThreadSafeFunction tsfn = std::any_cast<Napi::ThreadSafeFunction>(params[2]);
+
+    auto processor = [&](std::string_view existing) -> std::string {
+        std::string result;
+        tsfn.BlockingCall([&](Napi::Env env, Napi::Function jsCallback) {
+            Napi::Value ret = jsCallback.Call({ Napi::String::New(env, std::string(existing)) });
+            if (ret.IsString()) {
+                result = ret.As<Napi::String>().Utf8Value();
             }
-        //}
+        });
+        return result;
+    };
+
+    tkrzw::Status s = dbmReference->Process(key, processor, writable);
+    tsfn.Release();
+    if (s != tkrzw::Status::SUCCESS) SetError("DBM Process failed");
+}
+
+    // ---------------- Iterator operations ----------------
+    else if (operation == ITERATOR_FIRST) {
+        tkrzw::Status s = (*iteratorReference)->First();
+        if (s != tkrzw::Status::SUCCESS) SetError("Iterator First failed");
     }
-    if(operation == DBM_APPEND)
-    {
-        tkrzw::Status append_status = dbmReference->get().Append( std::any_cast<std::string>(params[0]), std::any_cast<std::string>(params[1]), std::any_cast<std::string>(params[2]) );
-        
-        if( append_status != tkrzw::Status::SUCCESS)
-        {
-            SetError("Couldn't append!");
-        }
+    else if (operation == ITERATOR_LAST) {
+        tkrzw::Status s = (*iteratorReference)->Last();
+        if (s != tkrzw::Status::SUCCESS) SetError("Iterator Last failed");
     }
-    else if(operation == DBM_GET_SIMPLE)
-    {
-        //if(params.size() == 2)
-        //{
-            any_result = dbmReference->get().GetSimple( std::any_cast<std::string>(params[0]), std::any_cast<std::string>(params[1]) );
-            if(std::any_cast<std::string>(any_result) == std::any_cast<std::string>(params[1]))
-            {
-                SetError("Key \"" + std::any_cast<std::string>(params[0]) + "\" not found!");
-            }
-        //}
-    }
-    else if(operation == DBM_SHOULD_BE_REBUILT)
-    {
-        bool shouldBeRebuilt_result = false;
-        tkrzw::Status shouldBeRebuilt_status = dbmReference->get().ShouldBeRebuilt(&shouldBeRebuilt_result);
-        if( shouldBeRebuilt_status != tkrzw::Status::SUCCESS)
-        {
-            SetError("(shouldBeRebuilt) Error checking database status!");
-        }
-        else if(shouldBeRebuilt_result == false)
-        {
-            SetError("No need to rebuild the database just yet!");
-        }
-    }
-    else if(operation == DBM_REBUILD)
-    {
-        //if(params.size() == 1)
-        //{
-            tkrzw::Status rebuild_status = dbmReference->get().RebuildAdvanced( std::any_cast<std::map<std::string,std::string>>(params[0]) );
-            if( rebuild_status != tkrzw::Status::SUCCESS)
-            {
-                SetError("[" + std::to_string(rebuild_status.GetCode()) + "]: " + rebuild_status.GetMessage());
-            }
-        //}
-    }
-    else if(operation == DBM_SYNC)
-    {
-        tkrzw::Status sync_status = dbmReference->get().Synchronize( std::any_cast<bool>(params[0]) );
-        if( sync_status != tkrzw::Status::SUCCESS)
-        {
-            SetError("[" + std::to_string(sync_status.GetCode()) + "]: " + sync_status.GetMessage());
-        }
-    }
-    else if(operation == DBM_PROCESS)
-    {
+    else if (operation == ITERATOR_JUMP) {
         std::string key = std::any_cast<std::string>(params[0]);
-        bool writable = std::any_cast<bool>(params[1]);
-        TSFN tsfn = std::any_cast<TSFN>(params[2]);
+        tkrzw::Status s = (*iteratorReference)->Jump(key);
+        if (s != tkrzw::Status::SUCCESS) SetError("Iterator Jump failed");
+    }
+    else if (operation == ITERATOR_JUMP_LOWER) {
+        std::string key = std::any_cast<std::string>(params[0]);
+        tkrzw::Status s = (*iteratorReference)->JumpLower(key, false);
+        if (s != tkrzw::Status::SUCCESS) SetError("Iterator JumpLower failed");
+    }
+    else if (operation == ITERATOR_JUMP_UPPER) {
+        std::string key = std::any_cast<std::string>(params[0]);
+        tkrzw::Status s = (*iteratorReference)->JumpUpper(key, false);
+        if (s != tkrzw::Status::SUCCESS) SetError("Iterator JumpUpper failed");
+    }
+    else if (operation == ITERATOR_NEXT) {
+        tkrzw::Status s = (*iteratorReference)->Next();
+        if (s != tkrzw::Status::SUCCESS) SetError("Iterator Next failed");
+    }
+    else if (operation == ITERATOR_PREVIOUS) {
+        tkrzw::Status s = (*iteratorReference)->Previous();
+        if (s != tkrzw::Status::SUCCESS) SetError("Iterator Previous failed");
+    }
+    else if (operation == ITERATOR_GET) {
+        std::string key, value;
+        tkrzw::Status s = (*iteratorReference)->Get(&key, &value);
+        if (s != tkrzw::Status::SUCCESS) {
+            SetError("Iterator Get failed");
+        } else {
+            any_result = std::make_pair(key, value);
+        }
+    }
+    else if (operation == ITERATOR_SET) {
+        std::string value = std::any_cast<std::string>(params[0]);
+        tkrzw::Status s = (*iteratorReference)->Set(value);
+        if (s != tkrzw::Status::SUCCESS) SetError("Iterator Set failed");
+    }
+    else if (operation == ITERATOR_REMOVE) {
+        tkrzw::Status s = (*iteratorReference)->Remove();
+        if (s != tkrzw::Status::SUCCESS) SetError("Iterator Remove failed");
+    }
 
-        processor_jsfunc_wrapper* processorWrapper = new processor_jsfunc_wrapper(tsfn);
-        tkrzw::Status process_status = dbmReference->get().Process(key, processorWrapper, writable);
-
-        tsfn.Release();
+    // ---------------- Index operations (from your original cpp) ----------------
+    else if (operation == INDEX_ADD) {
+        tkrzw::Status s = indexReference->Add(
+            std::any_cast<std::string>(params[0]),
+            std::any_cast<std::string>(params[1]));
+        if (s != tkrzw::Status::SUCCESS) SetError("Index Add failed");
     }
-    //===============================================INDEX_METHODS
-    else if(operation == INDEX_ADD)
-    {
-        tkrzw::Status add_status = indexReference->get().Add( std::any_cast<std::string>(params[0]), std::any_cast<std::string>(params[1]) );
-        if( add_status != tkrzw::Status::SUCCESS)
-        {
-            SetError("[" + std::to_string(add_status.GetCode()) + "]: " + add_status.GetMessage());
+    else if (operation == INDEX_GET_VALUES) {
+        any_result = indexReference->GetValues(
+            std::any_cast<std::string>(params[0]),
+            std::any_cast<std::size_t>(params[1]));
+    }
+    else if (operation == INDEX_CHECK) {
+        bool ok = indexReference->Check(
+            std::any_cast<std::string>(params[0]),
+            std::any_cast<std::string>(params[1]));
+        if (!ok) SetError("Index Check failed");
+    }
+    else if (operation == INDEX_REMOVE) {
+        tkrzw::Status s = indexReference->Remove(
+            std::any_cast<std::string>(params[0]),
+            std::any_cast<std::string>(params[1]));
+        if (s != tkrzw::Status::SUCCESS) SetError("Index Remove failed");
+    }
+    else if (operation == INDEX_SHOULD_BE_REBUILT) {
+        bool result = false;
+        tkrzw::Status s = indexReference->GetInternalDBM()->ShouldBeRebuilt(&result);
+        if (s != tkrzw::Status::SUCCESS || !result) {
+            SetError("Index ShouldBeRebuilt failed or not needed");
         }
     }
-    else if(operation == INDEX_GET_VALUES)
-    {
-        any_result = indexReference->get().GetValues( std::any_cast<std::string>(params[0]), std::any_cast<std::size_t>(params[1]) );
+    else if (operation == INDEX_REBUILD) {
+        tkrzw::Status s = indexReference->Rebuild();
+        if (s != tkrzw::Status::SUCCESS) SetError("Index Rebuild failed");
     }
-    else if(operation == INDEX_CHECK)
-    {
-        bool Check_status = indexReference->get().Check( std::any_cast<std::string>(params[0]), std::any_cast<std::string>(params[1]) );
-        if( !Check_status )
-        {
-            SetError("[\"" + std::any_cast<std::string>(params[0]) + "\": \"" + std::any_cast<std::string>(params[1]) + "\"] doesn't exist!");
-        }
+    else if (operation == INDEX_SYNC) {
+        tkrzw::Status s = indexReference->Synchronize(std::any_cast<bool>(params[0]));
+        if (s != tkrzw::Status::SUCCESS) SetError("Index Sync failed");
     }
-    else if(operation == INDEX_REMOVE)
-    {
-        tkrzw::Status remove_status = indexReference->get().Remove( std::any_cast<std::string>(params[0]), std::any_cast<std::string>(params[1]) );
-        if( remove_status != tkrzw::Status::SUCCESS)
-        {
-            SetError("[" + std::to_string(remove_status.GetCode()) + "]: " + remove_status.GetMessage());
-        }
-    }
-    else if(operation == INDEX_SHOULD_BE_REBUILT)
-    {
-        bool shouldBeRebuilt_result = false;
-        tkrzw::Status shouldBeRebuilt_status = indexReference->get().GetInternalDBM()->ShouldBeRebuilt( &shouldBeRebuilt_result );
-        if( shouldBeRebuilt_status != tkrzw::Status::SUCCESS)
-        {
-            SetError("(shouldBeRebuilt) Error checking index status!");
-        }
-        else if(shouldBeRebuilt_result == false)
-        {
-            SetError("No need to rebuild the index just yet!");
-        }
-    }
-    else if(operation == INDEX_REBUILD)
-    {
-        tkrzw::Status rebuild_status = indexReference->get().Rebuild();
-        if( rebuild_status != tkrzw::Status::SUCCESS)
-        {
-            SetError("[" + std::to_string(rebuild_status.GetCode()) + "]: " + rebuild_status.GetMessage());
-        }
-    }
-    else if(operation == INDEX_SYNC)
-    {
-        tkrzw::Status sync_status = indexReference->get().Synchronize( std::any_cast<bool>(params[0]) );
-        if( sync_status != tkrzw::Status::SUCCESS)
-        {
-            SetError("(sync) Error dynchronizing index!");
-        }
-    }
-    else if(operation == INDEX_MAKE_JUMP_ITERATOR)
-    {
+    else if (operation == INDEX_MAKE_JUMP_ITERATOR) {
         std::string partialKey = std::any_cast<std::string>(params[0]);
-        tkrzw::PolyIndex::Iterator* jump_iter = std::any_cast<tkrzw::PolyIndex::Iterator*>(params[1]);
-        jump_iter->Jump(partialKey);    //`tkrzw::PolyIndex::Iterator::Jump` is `void`
+        tkrzw::PolyIndex::Iterator* jump_iter =
+            std::any_cast<tkrzw::PolyIndex::Iterator*>(params[1]);
+        jump_iter->Jump(partialKey);
     }
-    else if(operation == INDEX_GET_ITERATOR_VALUE)
-    {
-        tkrzw::PolyIndex::Iterator* jump_iter = std::any_cast<tkrzw::PolyIndex::Iterator*>(params[0]);
-        std::pair<std::string, std::string> key_value;
-        //`tkrzw::PolyIndex::Iterator::Get` returns `true` or `false`!
-        if( jump_iter->Get(&key_value.first, &key_value.second) ) { any_result = key_value; }
-        else { SetError("(getIteratorValue) No record to fetch!"); }
+    else if (operation == INDEX_GET_ITERATOR_VALUE) {
+        tkrzw::PolyIndex::Iterator* jump_iter =
+            std::any_cast<tkrzw::PolyIndex::Iterator*>(params[0]);
+        std::pair<std::string, std::string> kv;
+        if (jump_iter->Get(&kv.first, &kv.second)) {
+            any_result = kv;
+        } else {
+            SetError("Index iterator Get failed");
+        }
     }
-    else if(operation == INDEX_CONTINUE_ITERATION)
-    {
-        tkrzw::PolyIndex::Iterator* jump_iter = std::any_cast<tkrzw::PolyIndex::Iterator*>(params[0]);
-        jump_iter->Next();  //`tkrzw::PolyIndex::Iterator::Next` is `void`
+    else if (operation == INDEX_CONTINUE_ITERATION) {
+        tkrzw::PolyIndex::Iterator* jump_iter =
+            std::any_cast<tkrzw::PolyIndex::Iterator*>(params[0]);
+        jump_iter->Next();
     }
 }
 
 void dbmAsyncWorker::OnOK()
 {
-    if(operation == INDEX_GET_VALUES)
-    {
-        std::vector<std::string>& casted_vector = std::any_cast<std::vector<std::string>&>(any_result);
-        Napi::Array res_arr = Napi::Array::New(Env(), casted_vector.size());
-        size_t i = 0;
-        for (auto &&record : casted_vector)
-        {
-            res_arr[i++] = record;
-        }
-        deferred_promise.Resolve( res_arr );
+    if (operation == DBM_GET_SIMPLE) {
+        deferred_promise.Resolve(
+            Napi::String::New(Env(), std::any_cast<std::string>(any_result)));
     }
-    else if(operation == DBM_GET_SIMPLE)
-    {
-        deferred_promise.Resolve( Napi::String::New( Env(), std::any_cast<std::string>(any_result) ) );
-    }
-    else if(operation == INDEX_GET_ITERATOR_VALUE)
-    {
-        std::pair<std::string, std::string>& casted_key_value = std::any_cast<std::pair<std::string, std::string>&>(any_result);
-        Napi::Object key_value_obj = Napi::Object::New(Env());
-        key_value_obj.Set("key", casted_key_value.first);
-        key_value_obj.Set("value", casted_key_value.second);
-        deferred_promise.Resolve( key_value_obj );
-    }
-    else { deferred_promise.Resolve( Env().Undefined() ); }
-}
-
-void dbmAsyncWorker::OnError(const Napi::Error& err)
-{
-    deferred_promise.Reject(err.Value());
-}
+    else if (operation == INDEX_GET_VALUES) {
+        std::vector<std::string>& vec =
