@@ -17,6 +17,11 @@ polyIndex_wrapper::polyIndex_wrapper(const Napi::CallbackInfo& info) : Napi::Obj
 Napi::Value polyIndex_wrapper::add(const Napi::CallbackInfo& info)
 {
     Napi::Env env = info.Env();
+    if (info.Length() < 2 || !info[0].IsString() || !info[1].IsString())
+    {
+        Napi::TypeError::New(env, "Add failed").ThrowAsJavaScriptException();
+        return env.Undefined();
+    }
     std::string key = info[0].As<Napi::String>().ToString().Utf8Value();
     std::string value = info[1].As<Napi::String>().ToString().Utf8Value();
 

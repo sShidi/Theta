@@ -1,7 +1,13 @@
 # Tkrzw-Node
+##[2.0.30]
+### feature
+- Search pattern contain and end
+##[2.0.29]
+### bugFix
+- Multiple Fixes in code
 ## [2.0.0]
 ### feature
-- full binding via Claude.ai
+- full binding via GROK
 ## [1.2.4]
 ### bugFix
 - convert BasicEnv to Env for can build this module for atlas service

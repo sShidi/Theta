@@ -8,6 +8,7 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include "../include/utils/tsfn_types.hpp"  // Added include for TSFN
 
 // Async worker for DBM and Index operations
 class dbmAsyncWorker : public Napi::AsyncWorker {
@@ -18,9 +19,26 @@ public:
         DBM_SET,
         DBM_APPEND,
         DBM_GET_SIMPLE,
+        DBM_REMOVE,  
+        DBM_COMPARE_EXCHANGE,
+        DBM_INCREMENT,
+        DBM_COMPARE_EXCHANGE_MULTI,
+        DBM_REKEY,
+        DBM_PROCESS_MULTI,
+        DBM_PROCESS_FIRST,
+        DBM_PROCESS_EACH,
+        DBM_COUNT,
+        DBM_GET_FILE_SIZE,
+        DBM_GET_FILE_PATH,
+        DBM_GET_TIMESTAMP,
+        DBM_CLEAR,
+        DBM_INSPECT,
         DBM_SHOULD_BE_REBUILT,
         DBM_REBUILD,
         DBM_SYNC,
+        DBM_SEARCH,
+        DBM_EXPORT_KEYS_AS_LINES,
+        DBM_RESTORE_DATABASE,
         DBM_PROCESS,
 
         // Iterator operations
@@ -35,7 +53,7 @@ public:
         ITERATOR_SET,
         ITERATOR_REMOVE,
 
-        // Index operations (already present in your cpp)
+        // Index operations, including any original
         INDEX_ADD,
         INDEX_GET_VALUES,
         INDEX_CHECK,
@@ -63,7 +81,7 @@ public:
 
     template <typename... argTypes>
     dbmAsyncWorker(const Napi::Env& env,
-                   std::unique_ptr<tkrzw::PolyDBM::Iterator>& iteratorReference,
+                   std::unique_ptr<tkrzw::DBM::Iterator>& iteratorReference,
                    OPERATION_TYPE operation,
                    argTypes... paramPack)
         : Napi::AsyncWorker(env),
@@ -96,7 +114,7 @@ public:
 private:
     // References to DBM, Iterator, or Index
     tkrzw::PolyDBM* dbmReference = nullptr;
-    std::unique_ptr<tkrzw::PolyDBM::Iterator>* iteratorReference = nullptr;
+    std::unique_ptr<tkrzw::DBM::Iterator>* iteratorReference = nullptr;
     tkrzw::PolyIndex* indexReference = nullptr;
 
     OPERATION_TYPE operation;

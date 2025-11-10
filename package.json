@@ -1,10 +1,10 @@
 {
-  "name": "tkrzw-node",
+  "name": "Theta",
   "type": "module",
   "packageType": "module",
-  "version": "2.0.0",
+  "version": "2.0.30",
   "description": "Tkrzw DBM and Index bindings for Node.js",
-  "author": "Claude.ai",
+  "author": "GROK",
   "keywords":
   [
     "Tkrzw",
@@ -27,6 +27,10 @@
     "bindings": "*",
     "cmake-js": "*",
     "node-addon-api": "*"
+  },
+  "devDependencies": {
+    "mocha": "latest",
+    "chai": "latest"
   },
   "license": "ISC",
   "bugs": "https://github.com/th3r0b0t/tkrzw-node/issues",

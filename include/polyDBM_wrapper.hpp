@@ -12,7 +12,7 @@ class polyDBM_wrapper : public Napi::ObjectWrap<polyDBM_wrapper>
 {
     private:
         tkrzw::PolyDBM dbm;
-        std::unique_ptr<tkrzw::PolyDBM::Iterator> iterator;
+        std::unique_ptr<tkrzw::DBM::Iterator> iterator;
     
     public:
         static Napi::Object Init(Napi::Env env, Napi::Object exports);
